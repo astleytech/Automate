@@ -1,45 +1,32 @@
 import streamlit as st
+import transformers
 import docx
-import openai
-import os
+import pptx
 
-# Set up the OpenAI API key
-openai.api_key = os.environ["OPENAI_API_KEY"]
+# Load the pre-trained summarization model
+model = transformers.pipeline("summarization")
 
-# Create the Streamlit app
-st.title("Text Summarization Tool")
+# Load the uploaded document and extract its paragraphs
+uploaded_file = st.file_uploader("Upload a file")
+if uploaded_file is not None:
+    doc = docx.Document(uploaded_file)
+    paragraphs = [p.text for p in doc.paragraphs]
 
-# Create the file upload widget
-file = st.file_uploader("Upload Word document", type=["docx"])
+    # Generate summarized bullets for each paragraph using the summarization model
+    bullets = []
+    for paragraph in paragraphs:
+        summary = model(paragraph, max_length=50, min_length=10, do_sample=False)[0]['summary_text'].strip()
+        bullets.append(summary)
 
-# Create the prompt input widgets
-prompts = []
-num_prompts = st.number_input("Number of prompts", min_value=1, max_value=10, step=1)
-for i in range(num_prompts):
-    prompt = st.text_input(f"Prompt {i+1}")
-    prompts.append(prompt)
+    # Create a PowerPoint file and populate it with the summarized bullets
+    prs = pptx.Presentation()
+    for bullet in bullets:
+        slide = prs.slides.add_slide(prs.slide_layouts[1])
+        slide.shapes.title.text = "Summary"
+        text_frame = slide.shapes.add_textbox(left=0, top=80, width=prs.slide_width, height=prs.slide_height - 80).text_frame
+        p = text_frame.add_paragraph()
+        p.text = bullet
 
-# Process the file and generate summaries
-if file is not None:
-    # Read the text from the Word document
-    doc = docx.Document(file)
-    text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
-
-    # Generate summaries for each prompt
-    summaries = []
-    for prompt in prompts:
-        prompt_text = f"{prompt}\n\n{text}"
-        response = openai.Completion.create(
-            engine="text-davinci-002",
-            prompt=prompt_text,
-            max_tokens=100,
-            n=1,
-            stop=None,
-            temperature=0.5,
-        )
-        summary = response.choices[0].text.strip()
-        summaries.append(summary)
-
-    # Display the summaries
-    for summary in summaries:
-        st.bullet(summary)
+    # Save the PowerPoint file and display a download link
+    prs.save("output.pptx")
+    st.download_button(label="Download Summary", data=open("output.pptx", "rb").read(), file_name="output.pptx")
