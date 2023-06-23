@@ -8,3 +8,4 @@ streamlit
 pip
 openai
 python-docx
+transformers
