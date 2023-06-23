@@ -6,30 +6,17 @@ import pptx
 # Load the pre-trained summarization model
 model = transformers.pipeline("summarization")
 
-# Define a function to generate a summarized bullet for a paragraph
-def generate_bullet(paragraph, prompts):
-    for prompt in prompts:
-        summary = model(prompt + " " + paragraph, max_length=50, min_length=10, do_sample=False)[0]['summary_text'].strip()
-        if len(summary) > 0:
-            return summary
-    return ""
-
 # Load the uploaded document and extract its paragraphs
 uploaded_file = st.file_uploader("Upload a file")
 if uploaded_file is not None:
     doc = docx.Document(uploaded_file)
     paragraphs = [p.text for p in doc.paragraphs]
 
-    # Allow the user to choose the number of prompts and enter them
-    num_prompts = st.number_input("Enter the number of prompts", min_value=1, max_value=10, value=1, step=1)
-    prompts = []
-    for i in range(num_prompts):
-        prompt = st.text_input(f"Enter prompt #{i+1}")
-        if prompt:
-            prompts.append(prompt)
-
     # Generate summarized bullets for each paragraph using the summarization model
-    bullets = [generate_bullet(paragraph, prompts) for paragraph in paragraphs]
+    bullets = []
+    for paragraph in paragraphs:
+        summary = model(paragraph, max_length=50, min_length=10, do_sample=False)[0]['summary_text'].strip()
+        bullets.append(summary)
 
     # Create a PowerPoint file and populate it with the summarized bullets
     prs = pptx.Presentation()
