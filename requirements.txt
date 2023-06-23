@@ -9,3 +9,4 @@ pip
 openai
 python-docx
 transformers==4.8.2
+pptx
