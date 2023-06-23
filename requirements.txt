@@ -6,3 +6,5 @@ opencv-python-headless
 pyngrok
 streamlit
 pip
+openai
+python-docx
